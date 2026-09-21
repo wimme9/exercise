@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>นาฬิกาเตือนลุกเต้น Y.M.C.A. (09:00 - 16:00)</title>
+  <title>นาฬิกาเตือนลุกยืดเหยีด (09:00 - 16:00)</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -193,11 +193,11 @@
   <!-- Element สำหรับเล่นไฟล์เพลง mp3 จริง -->
   <audio id="ymcaAudio" preload="auto">
     <!-- ลิงก์ตัวอย่างไฟล์ mp3 (เปลี่ยนเป็น URL เพลงของคุณเองได้) -->
-    <source src="https://ia800501.us.archive.org/34/items/VillagePeopleYMCA/Village%20People%20-%20YMCA.mp3" type="audio/mpeg">
+    <source src="https://www.youtube.com/shorts/hGY9W2cyw8I" type="audio/mpeg">
   </audio>
 
   <div class="container">
-    <h1>🕺 เตือนลุกเต้น Y.M.C.A. (เพลงจริง)</h1>
+    <h1>🕺 เตือนลุกยืดเหยียด</h1>
     
     <div id="audioStatus" class="status-banner" onclick="initAudio()">
       ⚠️ คลิกที่นี่หนึ่งครั้ง เพื่อเปิดใช้งานระบบเสียงอัตโนมัติ
@@ -215,8 +215,8 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเล่นเพลงจริง</button>
-      <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเพลงเต้น</button>
+      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเล่นเพลง</button>
+      <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเพลง</button>
       <button class="btn btn-secondary" onclick="requestNotification()">🔔 เปิดการแจ้งเตือน</button>
     </div>
 
@@ -227,7 +227,7 @@
   <script>
     const timeslots = [
       "09:00", "09:30", "10:00", "10:30",
-      "11:00", "11:30", "12:00", "12:30",
+      "11:00", "11:30", 
       "13:00", "13:30", "14:00", "14:30",
       "15:00", "15:30", "16:00"
     ];
