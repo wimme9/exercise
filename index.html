@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมเตือนลุกเต้นยืดเส้นยืดสาย (09:00 - 15:00)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            font-family: 'Kanit', sans-serif;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 2s infinite ease-in-out;
+        }
+        @keyframes dance {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-8px) rotate(-5deg); }
+            75% { transform: translateY(-8px) rotate(5deg); }
+        }
+        .animate-dance {
+            animation: dance 0.6s infinite ease-in-out;
+        }
+        /* Custom scrollbar for time slots */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-100 via-orange-100 to-rose-200 min-h-screen text-slate-800 flex flex-col items-center p-3 sm:p-6">
+
+    <div class="max-w-md w-full bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border border-orange-200/60 p-5 sm:p-7 flex flex-col gap-6 relative overflow-hidden">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <div class="inline-flex items-center gap-2 bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-semibold mb-2 shadow-sm">
+                <span>⏰ เตือนยืดเส้นทุก 30 นาที</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">ลุกเต้นรีเฟรชร่างกาย! 💃🕺</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">ช่วงเวลาทำงาน 09:00 น. - 15:00 น.</p>
+        </div>
+
+        <!-- Clock & Countdown Banner -->
+        <div class="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-4 text-white text-center shadow-lg relative overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 opacity-15 text-7xl font-black select-none">30M</div>
+            <div class="text-xs uppercase tracking-wider text-orange-100 font-medium mb-1">เวลาปัจจุบัน</div>
+            <div id="current-time-display" class="text-3xl sm:text-4xl font-extrabold tracking-wider mb-2 font-mono">00:00:00</div>
+            
+            <div class="pt-2 border-t border-orange-400/40 flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-orange-100">รอบเตือนถัดไป:</span>
+                <span id="next-alarm-time" class="font-bold bg-white/20 px-2.5 py-0.5 rounded-full text-white">09:00 น.</span>
+            </div>
+            <div class="flex justify-between items-center text-xs sm:text-sm mt-1">
+                <span class="text-orange-100">นับถอยหลัง:</span>
+                <span id="countdown-display" class="font-bold text-amber-200 font-mono">--:--</span>
+            </div>
+        </div>
+
+        <!-- Interactive Control Panel / Active Alarm -->
+        <div id="alarm-active-card" class="hidden bg-rose-50 border-2 border-rose-400 rounded-2xl p-4 text-center shadow-md animate-bounce">
+            <div class="text-3xl mb-1 animate-dance inline-block">🔔💃</div>
+            <h2 class="text-lg font-bold text-rose-600">ได้เวลาลุกขยับร่างกายแล้ว!</h2>
+            <p class="text-xs text-rose-500 mb-3">นั่งนานเกินไปแล้ว ลุกขึ้นยืนแล้วมาเต้นกันเถอะ</p>
+            
+            <button id="btn-stop-and-dance" class="w-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>กดปิดกระดิ่ง & เปิดเพลงปลุกใจเต้น! 🎵</span>
+            </button>
+        </div>
+
+        <!-- Music Playing Status (Hidden by default) -->
+        <div id="music-active-card" class="hidden bg-emerald-50 border border-emerald-300 rounded-2xl p-4 text-center shadow-md">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span class="text-sm font-semibold text-emerald-700">กำลังเล่นเพลงปลุกใจยืดสายตา 🎶</span>
+            </div>
+            <p class="text-xs text-emerald-600 mb-3">สลัดความเมื่อยล้า หมุนไหล่ แกว่งแขน ลุกขยับสัก 1-2 นาที!</p>
+            <button id="btn-stop-music" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 px-4 rounded-xl text-xs transition">
+                หยุดเล่นเพลง
+            </button>
+        </div>
+
+        <!-- Controls & Sound Test -->
+        <div class="flex flex-col gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9"></path></svg>
+                    <span class="text-sm font-semibold text-slate-700">เปิดระบบแจ้งเตือนอัตโนมัติ</span>
+                </div>
+                <!-- Toggle Switch -->
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="toggle-alarm" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                </label>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200 flex gap-2">
+                <button id="btn-test-bell" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
+                    🔔 ทดสอบเสียงกระดิ่ง
+                </button>
+                <button id="btn-test-dance" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
+                    🎵 ทดสอบเพลงเต้น
+                </button>
+            </div>
+        </div>
+
+        <!-- Schedule Checklist -->
+        <div>
+            <h3 class="text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
+                <span>ตารางการเตือนวันนี้ (09:00 - 16:00)</span>
+                <span id="slots-completed-count" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-normal">0/15 สำเร็จ</span>
+            </h3>
+            
+            <div id="schedule-container" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="text-center text-[11px] text-slate-400">
+            ระบบใช้ Web Audio API สังเคราะห์เสียงทั้งหมด โดยไม่ต้องต่ออินเทอร์เน็ตเพื่อโหลดไฟล์เสียง
+        </div>
+
+    </div>
+
+    <script>
+        // Array of 15 scheduled times from 09:00 to 16:00
+        const SCHEDULE_TIMES = [
+            "09:00", "09:30", "10:00", "10:30", 
+            "11:00", "11:30",  
+            "13:00", "13:30", "14:00", "14:30", 
+            "15:00", "15:30", "16:00"
+        ];
+
+        // State variables
+        let audioCtx = null;
+        let activeMusicInterval = null;
+        let isMusicPlaying = false;
+        let activeBellInterval = null;
+        let isBellRinging = false;
+        let triggeredSlots = new Set();
+
+        // Audio Context lazy init
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // --- WEB AUDIO API: BELL SOUND SYNTHESIS ---
+        function playBellSound() {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                // Create oscillator for main chime pitch (fundamental + harmonics)
+                const freqs = [880, 1760, 2640]; // A5 tone harmonics
+                freqs.forEach((freq, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    // Decay envelope for metallic bell resonance
+                    const volume = index === 0 ? 0.6 : 0.2 / index;
+                    gain.gain.setValueAtTime(volume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 1.8);
+                });
+            } catch (e) {
+                console.error("Audio playback error:", e);
+            }
+        }
+
+        function startRingingBell() {
+            if (isBellRinging) return;
+            isBellRinging = true;
+            document.getElementById('alarm-active-card').classList.remove('hidden');
+            
+            // Ring twice immediately
+            playBellSound();
+            setTimeout(() => { if (isBellRinging) playBellSound(); }, 600);
+
+            // Repeat bell chime every 2.5 seconds until stopped
+            activeBellInterval = setInterval(() => {
+                if (isBellRinging) {
+                    playBellSound();
+                    setTimeout(() => { if (isBellRinging) playBellSound(); }, 500);
+                }
+            }, 2500);
+        }
+
+        function stopRingingBell() {
+            isBellRinging = false;
+            if (activeBellInterval) {
+                clearInterval(activeBellInterval);
+                activeBellInterval = null;
+            }
+            document.getElementById('alarm-active-card').classList.add('hidden');
+        }
+
+        // --- WEB AUDIO API: SYNTHESIZED ENERGETIC DANCE BEAT ---
+        function playUpbeatDanceMusic() {
+            stopRingingBell();
+            stopDanceMusic();
+
+            const ctx = getAudioContext();
+            isMusicPlaying = true;
+            document.getElementById('music-active-card').classList.remove('hidden');
+
+            // Trigger visual confetti celebration
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 60,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // High energy dance music pattern sequence
+            const tempo = 128; // energetic BPM
+            const stepTime = 60 / tempo / 4; // 16th notes
+            let step = 0;
+
+            // Bassline notes (Energetic pentatonic / disco synth line)
+            const bassNotes = [110, 110, 220, 110, 146.83, 110, 164.81, 130.81]; // A2, A3, D3, E3, C3
+            const synthArp = [440, 523.25, 659.25, 783.99, 880, 783.99, 659.25, 523.25];
+
+            activeMusicInterval = setInterval(() => {
+                if (!isMusicPlaying) return;
+
+                const now = ctx.currentTime;
+
+                // 1. KICK DRUM (Every 4th step - 4 on the floor)
+                if (step % 4 === 0) {
+                    const kickOsc = ctx.createOscillator();
+                    const kickGain = ctx.createGain();
+                    kickOsc.frequency.setValueAtTime(150, now);
+                    kickOsc.frequency.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    kickGain.gain.setValueAtTime(0.8, now);
+                    kickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    kickOsc.connect(kickGain);
+                    kickGain.connect(ctx.destination);
+                    kickOsc.start(now);
+                    kickOsc.stop(now + 0.15);
+                }
+
+                // 2. SNARE / CLAP (Every 8th step - offbeats 4, 12)
+                if (step % 8 === 4) {
+                    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < noiseBuffer.length; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = ctx.createBufferSource();
+                    whiteNoise.buffer = noiseBuffer;
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 1000;
+
+                    const snareGain = ctx.createGain();
+                    snareGain.gain.setValueAtTime(0.4, now);
+                    snareGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(snareGain);
+                    snareGain.connect(ctx.destination);
+                    whiteNoise.start(now);
+                }
+
+                // 3. HI-HAT (Every 2nd step)
+                if (step % 2 === 1) {
+                    const hatBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+                    const output = hatBuffer.getChannelData(0);
+                    for (let i = 0; i < hatBuffer.length; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const hat = ctx.createBufferSource();
+                    hat.buffer = hatBuffer;
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 5000;
+
+                    const hatGain = ctx.createGain();
+                    hatGain.gain.setValueAtTime(0.15, now);
+                    hatGain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+
+                    hat.connect(filter);
+                    filter.connect(hatGain);
+                    hatGain.connect(ctx.destination);
+                    hat.start(now);
+                }
+
+                // 4. SYNTH BASS & ARPEGGIO
+                const note = bassNotes[(step / 2) % bassNotes.length];
+                const bassOsc = ctx.createOscillator();
+                const bassGain = ctx.createGain();
+                bassOsc.type = 'sawtooth';
+                bassOsc.frequency.setValueAtTime(note, now);
+                bassGain.gain.setValueAtTime(0.2, now);
+                bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                bassOsc.connect(bassGain);
+                bassGain.connect(ctx.destination);
+                bassOsc.start(now);
+                bassOsc.stop(now + 0.12);
+
+                // Upbeat Melody Synth Accent
+                if (step % 2 === 0) {
+                    const melodyNote = synthArp[(step / 2) % synthArp.length];
+                    const melodyOsc = ctx.createOscillator();
+                    const melodyGain = ctx.createGain();
+                    melodyOsc.type = 'square';
+                    melodyOsc.frequency.setValueAtTime(melodyNote, now);
+                    melodyGain.gain.setValueAtTime(0.08, now);
+                    melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    melodyOsc.connect(melodyGain);
+                    melodyGain.connect(ctx.destination);
+                    melodyOsc.start(now);
+                    melodyOsc.stop(now + 0.1);
+                }
+
+                step = (step + 1) % 32;
+            }, stepTime * 1000);
+
+            // Auto-stop music after 45 seconds to protect ears/battery
+            setTimeout(() => {
+                if (isMusicPlaying) {
+                    stopDanceMusic();
+                }
+            }, 45000);
+        }
+
+        function stopDanceMusic() {
+            isMusicPlaying = false;
+            if (activeMusicInterval) {
+                clearInterval(activeMusicInterval);
+                activeMusicInterval = null;
+            }
+            document.getElementById('music-active-card').classList.add('hidden');
+        }
+
+        // Render Schedule Items UI
+        function renderScheduleSlots() {
+            const container = document.getElementById('schedule-container');
+            container.innerHTML = '';
+
+            const now = new Date();
+            const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            let completedCount = 0;
+
+            SCHEDULE_TIMES.forEach(timeStr => {
+                const isPassed = currentHM > timeStr;
+                const isTriggered = triggeredSlots.has(timeStr);
+                
+                if (isPassed || isTriggered) {
+                    completedCount++;
+                }
+
+                const card = document.createElement('div');
+                card.id = `slot-${timeStr.replace(':', '')}`;
+                
+                let statusBg = 'bg-white text-slate-700 border-slate-200';
+                let icon = '⏰';
+
+                if (isTriggered) {
+                    statusBg = 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold';
+                    icon = '✅';
+                } else if (isPassed) {
+                    statusBg = 'bg-slate-100 text-slate-400 border-slate-200 line-through';
+                    icon = '⚪';
+                }
+
+                card.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${statusBg}`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-1.5">
+                        <span>${icon}</span>
+                        <span class="font-mono text-sm">${timeStr} น.</span>
+                    </div>
+                    <span class="text-[10px] opacity-75">${isTriggered ? 'เตือนแล้ว' : (isPassed ? 'เลยเวลา' : 'รอดำเนินการ')}</span>
+                `;
+
+                container.appendChild(card);
+            });
+
+            document.getElementById('slots-completed-count').textContent = `${completedCount}/${SCHEDULE_TIMES.length} สำเร็จ`;
+        }
+
+        // Main Clock Update Logic
+        function updateTimer() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            const hmString = `${hours}:${minutes}`;
+
+            document.getElementById('current-time-display').textContent = timeString;
+
+            // Find next alarm target
+            const nextAlarm = SCHEDULE_TIMES.find(t => t > hmString) || SCHEDULE_TIMES[0];
+            document.getElementById('next-alarm-time').textContent = `${nextAlarm} น.`;
+
+            // Calculate countdown to next alarm slot
+            const [targetH, targetM] = nextAlarm.split(':').map(Number);
+            let targetDate = new Date();
+            targetDate.setHours(targetH, targetM, 0, 0);
+
+            if (targetDate <= now) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            const diffMs = targetDate - now;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffSec = Math.floor((diffMs % 60000) / 1000);
+            
+            document.getElementById('countdown-display').textContent = 
+                `${String(diffMin).padStart(2, '0')}:${String(diffSec).padStart(2, '0')}`;
+
+            // Alarm Check Logic
+            const isAlarmEnabled = document.getElementById('toggle-alarm').checked;
+            
+            if (isAlarmEnabled && seconds === '00' && SCHEDULE_TIMES.includes(hmString)) {
+                if (!triggeredSlots.has(hmString)) {
+                    triggeredSlots.add(hmString);
+                    renderScheduleSlots();
+                    startRingingBell();
+                }
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Button to stop bell and start dance music
+            document.getElementById('btn-stop-and-dance').addEventListener('click', () => {
+                playUpbeatDanceMusic();
+            });
+
+            // Button to stop music
+            document.getElementById('btn-stop-music').addEventListener('click', () => {
+                stopDanceMusic();
+            });
+
+            // Sound test buttons
+            document.getElementById('btn-test-bell').addEventListener('click', () => {
+                getAudioContext();
+                if (isBellRinging) {
+                    stopRingingBell();
+                } else {
+                    startRingingBell();
+                }
+            });
+
+            document.getElementById('btn-test-dance').addEventListener('click', () => {
+                getAudioContext();
+                if (isMusicPlaying) {
+                    stopDanceMusic();
+                } else {
+                    playUpbeatDanceMusic();
+                }
+            });
+
+            // Resume audio context on any user interaction to comply with browser autoplay policies
+            document.body.addEventListener('click', () => {
+                getAudioContext();
+            }, { once: true });
+        }
+
+        // Initializer
+        window.onload = function() {
+            renderScheduleSlots();
+            setupEventListeners();
+            
+            // Start main ticker interval
+            setInterval(updateTimer, 1000);
+            updateTimer();
+        };
+    </script>
+</body>
+</html>
