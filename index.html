@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>นาฬิกาเตือนลุกเต้นอัตโนมัติ (09:00 - 16:00)</title>
+  <title>นาฬิกาเตือนลุกเต้น Y.M.C.A. (09:00 - 16:00)</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -21,6 +21,18 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      transition: background 0.5s;
+    }
+
+    /* แอนิเมชันดิสโก้ตอนเพลง Y.M.C.A. เล่น */
+    body.disco-mode {
+      animation: discoBg 1.5s infinite alternate;
+    }
+
+    @keyframes discoBg {
+      0% { background: linear-gradient(135deg, #1a1a2e, #880e4f); }
+      50% { background: linear-gradient(135deg, #0d47a1, #1a1a2e); }
+      100% { background: linear-gradient(135deg, #4a148c, #004d40); }
     }
 
     .container {
@@ -95,7 +107,7 @@
       margin-bottom: 20px;
       font-size: 1.2rem;
       font-weight: bold;
-      animation: pulse 1s infinite alternate;
+      animation: pulse 0.8s infinite alternate;
     }
 
     @keyframes pulse {
@@ -180,14 +192,15 @@
 <body>
 
   <div class="container">
-    <h1>💃 เตือนลุกเต้นยืดเส้นยืดสาย</h1>
+    <h1>🕺 เตือนลุกเต้น Y.M.C.A.</h1>
     
     <div id="audioStatus" class="status-banner" onclick="initAudio()">
       ⚠️ คลิกที่นี่หนึ่งครั้ง เพื่อเปิดใช้งานระบบเสียงอัตโนมัติ
     </div>
 
     <div id="playingBanner" class="playing-banner">
-      🎵 งานการเงิน... เราจะแข็งแรงไปด้วยกัน! 🕺
+      🎶 IT'S FUN TO STAY AT THE Y.M.C.A.! 🕺<br>
+      <span style="font-size: 0.9rem; font-weight: normal;">งานการเงิน... เราจะแข็งแรงไปด้วยกัน!</span>
     </div>
 
     <div class="clock-card">
@@ -197,7 +210,7 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเล่นเพลงทันที</button>
+      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเพลง Y.M.C.A.</button>
       <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเพลงเต้น</button>
       <button class="btn btn-secondary" onclick="requestNotification()">🔔 เปิดการแจ้งเตือน</button>
     </div>
@@ -262,43 +275,86 @@
       if (!isAudioReady) initAudio();
     }, { once: true });
 
+    // ตารางโน้ตและจังหวะของทำนองท่อนฮุกเพลง Y.M.C.A.
+    const ymcaMelody = [
+      // "Young man, there's no need to feel down"
+      { note: 392.00, duration: 0.25 }, // G4
+      { note: 440.00, duration: 0.25 }, // A4
+      { note: 392.00, duration: 0.25 }, // G4
+      { note: 329.63, duration: 0.25 }, // E4
+      { note: 0,      duration: 0.10 }, // พัก
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 440.00, duration: 0.20 }, // A4
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 329.63, duration: 0.35 }, // E4
+      { note: 0,      duration: 0.15 }, // พัก
+
+      // "I said, young man, pick yourself off the ground"
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 440.00, duration: 0.20 }, // A4
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 329.63, duration: 0.20 }, // E4
+      { note: 0,      duration: 0.10 }, // พัก
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 440.00, duration: 0.20 }, // A4
+      { note: 392.00, duration: 0.20 }, // G4
+      { note: 329.63, duration: 0.35 }, // E4
+      { note: 0,      duration: 0.15 }, // พัก
+
+      // "It's fun to stay at the Y-M-C-A!"
+      { note: 523.25, duration: 0.30 }, // C5
+      { note: 523.25, duration: 0.30 }, // C5
+      { note: 523.25, duration: 0.30 }, // C5
+      { note: 523.25, duration: 0.30 }, // C5
+      { note: 587.33, duration: 0.25 }, // D5
+      { note: 659.25, duration: 0.25 }, // E5
+      { note: 587.33, duration: 0.25 }, // D5
+      { note: 523.25, duration: 0.50 }, // C5
+      { note: 0,      duration: 0.30 }  // พัก
+    ];
+
     function playDanceMusic() {
       if (!audioCtx) initAudio();
       stopDanceMusic();
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
+      document.body.classList.add('disco-mode');
 
-      const bpm = 132;
-      const stepTime = 60 / bpm / 4;
-      let step = 0;
+      let noteIndex = 0;
+      let beatStep = 0;
 
+      // ระบบจังหวะกลอง Disco Beat (4/4)
+      const discoBpm = 126;
+      const stepTime = (60 / discoBpm) / 4;
+
+      // 1. ลูปกลองดิสโก้ (Kick / Snare / Hi-Hat)
       danceMusicLoop = setInterval(() => {
         const now = audioCtx.currentTime;
-        
-        // Kick Bass (จังหวะเบสแน่นๆ)
-        if (step % 4 === 0) {
+
+        // Kick Drum (สแนร์เบสแน่นๆ ทุกจังหวะ)
+        if (beatStep % 4 === 0) {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
-          osc.frequency.setValueAtTime(160, now);
-          osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.18);
-          gain.gain.setValueAtTime(1, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.15);
+          gain.gain.setValueAtTime(0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
           osc.start(now);
-          osc.stop(now + 0.18);
+          osc.stop(now + 0.15);
         }
 
-        // Synth Melody (ทำนองดนตรีปลุกใจ)
-        if (step % 2 === 0) {
-          const notes = [261.63, 329.63, 392.00, 523.25, 587.33, 659.25]; // C E G C D E
-          const note = notes[(step / 2) % notes.length];
+        // Snare / Clap จังหวะที่ 2 และ 4
+        if (beatStep % 8 === 4) {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(note, now);
-          gain.gain.setValueAtTime(0.25, now);
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(250, now);
+          gain.gain.setValueAtTime(0.4, now);
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
@@ -306,11 +362,46 @@
           osc.stop(now + 0.12);
         }
 
-        step = (step + 1) % 16;
+        beatStep = (beatStep + 1) % 16;
       }, stepTime * 1000);
 
-      // ตั้งเวลาให้เพลงหยุดอัตโนมัติหลังจากเล่นไป 30 วินาที
-      danceTimeout = setTimeout(() => {
+      // 2. ฟังก์ชันเล่นตัวโน้ตเพลง Y.M.C.A. วนลูป
+      function playNextMelodyNote() {
+        if (!danceMusicLoop) return; // ถ้าสั่งหยุดเพลงแล้ว ไม่เล่นโน้ตถัดไป
+
+        const currentNote = ymcaMelody[noteIndex];
+        const now = audioCtx.currentTime;
+
+        if (currentNote.note > 0) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          // ใช้คลื่นเสียง Sawtooth ให้ความรู้สึกสังเคราะห์สไตล์ Brass Disco 80s
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(currentNote.note, now);
+
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + currentNote.duration);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now);
+          osc.stop(now + currentNote.duration);
+        }
+
+        // ไปโน้ตถัดไป วนกลับมาเริ่มต้นเมื่อเล่นจบ
+        noteIndex = (noteIndex + 1) % ymcaMelody.length;
+
+        // นัดเวลาเล่นโน้ตถัดไปตามความยาว duration
+        danceTimeout = setTimeout(playNextMelodyNote, currentNote.duration * 1000);
+      }
+
+      // เริ่มเล่นทำนองโน้ตแรก
+      playNextMelodyNote();
+
+      // ตั้งเวลาให้หยุดเพลงอัตโนมัติเมื่อผ่านไป 30 วินาที
+      setTimeout(() => {
         stopDanceMusic();
       }, 30000);
     }
@@ -326,6 +417,7 @@
       }
       document.getElementById('playingBanner').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'none';
+      document.body.classList.remove('disco-mode');
     }
 
     let lastTriggeredMinute = "";
@@ -367,7 +459,7 @@
         document.getElementById('countdown').innerText = `เหลือเวลาอีก ${diffMin} นาที ${diffSec} วินาที`;
       } else {
         document.getElementById('nextTime').innerText = `หมดรอบเตือนสำหรับวันนี้แล้ว`;
-        document.getElementById('countdown').innerText = `พักผ่อนได้แล้ว!`;
+        document.getElementById('countdown').innerText = `รักษาสุขภาพกันด้วยนะ!`;
       }
 
       renderSchedule(timeHHMM, nextTarget);
@@ -396,8 +488,8 @@
       playDanceMusic();
 
       if (Notification.permission === 'granted') {
-        new Notification("💃 ได้เวลาลุกยืดเส้นยืดสาย!", {
-          body: "ลุกขึ้นยืดเหยียดกัน 30 วินาทีจ้าาาา",
+        new Notification("🕺 ได้เวลาลุกเต้น Y.M.C.A.!", {
+          body: "It's fun to stay at the Y.M.C.A.! ลุกขึ้นยืดเหยียด 30 วินาทีกันจ้าาา",
           icon: "https://cdn-icons-png.flaticon.com/512/3076/3076921.png"
         });
       }
