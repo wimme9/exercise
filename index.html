@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>นาฬิกาเตือนลุกเต้นยืดเส้นยืดสาย (09:00 - 16:00)</title>
+  <title>นาฬิกาเตือนลุกเต้นอัตโนมัติ (09:00 - 16:00)</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -87,11 +87,28 @@
       margin-top: 5px;
     }
 
+    .playing-banner {
+      display: none;
+      background: linear-gradient(45deg, #ff007f, #7928ca);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.98); opacity: 0.8; }
+      100% { transform: scale(1.02); opacity: 1; }
+    }
+
     .btn-group {
       display: flex;
       gap: 10px;
       justify-content: center;
       margin-bottom: 20px;
+      flex-wrap: wrap;
     }
 
     .btn {
@@ -110,6 +127,11 @@
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(255, 65, 108, 0.6);
+    }
+
+    .btn-stop {
+      background: linear-gradient(45deg, #f857a6, #ff5858);
+      display: none;
     }
 
     .btn-secondary {
@@ -153,67 +175,19 @@
       color: #00f2fe;
       font-weight: bold;
     }
-
-    /* Modal Overlay for Alarm */
-    .alarm-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 9999;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      animation: flash 1s infinite alternate;
-    }
-
-    @keyframes flash {
-      0% { background: rgba(255, 0, 85, 0.8); }
-      100% { background: rgba(0, 100, 255, 0.8); }
-    }
-
-    .alarm-box {
-      background: #111;
-      padding: 40px;
-      border-radius: 20px;
-      text-align: center;
-      max-width: 90%;
-      width: 400px;
-      border: 2px solid #fff;
-    }
-
-    .alarm-box h2 {
-      font-size: 2rem;
-      color: #fff;
-      margin-bottom: 15px;
-    }
-
-    .alarm-box p {
-      font-size: 1.2rem;
-      margin-bottom: 25px;
-      color: #ffeb3b;
-    }
-
-    .dance-btn {
-      background: #00e676;
-      color: #000;
-      font-size: 1.3rem;
-      font-weight: bold;
-      padding: 15px 30px;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 0 20px #00e676;
-    }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>💃 เตือนลุกยืดเส้นยืดสาย</h1>
+    <h1>💃 เตือนลุกเต้นยืดเส้นยืดสาย</h1>
     
     <div id="audioStatus" class="status-banner" onclick="initAudio()">
       ⚠️ คลิกที่นี่หนึ่งครั้ง เพื่อเปิดใช้งานระบบเสียงอัตโนมัติ
+    </div>
+
+    <div id="playingBanner" class="playing-banner">
+      🎵 งานการเงิน... เราจะแข็งแรงไปด้วยกัน! 🕺
     </div>
 
     <div class="clock-card">
@@ -223,7 +197,8 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn" onclick="triggerAlarm()">⚡ ทดสอบเตือนทันที</button>
+      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเล่นเพลงทันที</button>
+      <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเพลงเต้น</button>
       <button class="btn btn-secondary" onclick="requestNotification()">🔔 เปิดการแจ้งเตือน</button>
     </div>
 
@@ -231,19 +206,10 @@
     <div id="scheduleGrid" class="schedule-grid"></div>
   </div>
 
-  <!-- หน้าต่างป๊อปอัพเตือนเมื่อถึงเวลา -->
-  <div id="alarmModal" class="alarm-modal">
-    <div class="alarm-box">
-      <h2>⏰ ถึงเวลาลุกยืดเส้นยืดสาย!</h2>
-      <p>พักสายตา แล้วออกสเต็ปสักนิด 🎵</p>
-      <button class="dance-btn" onclick="stopAlarmAndPlayDance()">🕺 ปิดเตือน & เล่นเพลงเต้น!</button>
-    </div>
-  </div>
-
   <script>
     const timeslots = [
       "09:00", "09:30", "10:00", "10:30",
-      "11:00", "11:30", ,
+      "11:00", "11:30", "12:00", "12:30",
       "13:00", "13:30", "14:00", "14:30",
       "15:00", "15:30", "16:00"
     ];
@@ -251,10 +217,10 @@
     let audioCtx = null;
     let isAudioReady = false;
     let danceMusicLoop = null;
+    let danceTimeout = null;
     let keepAliveOsc = null;
-    let activeAlarmOsc = null;
 
-    // Web Worker ป้องกันการนอนหลับเมื่อสลับ Tab
+    // Web Worker ป้องกัน Browser Freeze ตอนสลับ Tab
     const workerCode = `
       setInterval(() => {
         postMessage('tick');
@@ -275,11 +241,11 @@
         audioCtx.resume();
       }
       
-      // สร้างเสียงเงียบแบบวนลูปไว้ เพื่อรักษาความสดของ Background Audio Context
+      // เสียงเงียบเพื่อเลี้ยง Audio Context ให้ตื่นเสมอ
       if (!keepAliveOsc) {
         const silentOsc = audioCtx.createOscillator();
         const silentGain = audioCtx.createGain();
-        silentGain.gain.value = 0.001; // เบามากจนไม่ได้ยิน
+        silentGain.gain.value = 0.0001;
         silentOsc.connect(silentGain);
         silentGain.connect(audioCtx.destination);
         silentOsc.start();
@@ -289,78 +255,64 @@
       isAudioReady = true;
       const statusEl = document.getElementById('audioStatus');
       statusEl.classList.add('ready');
-      statusEl.innerHTML = "🔊 งานการเงิน เราจะแข็งแรงไปด้วยกัน";
+      statusEl.innerHTML = "🔊 ระบบเสียงพร้อมทำงานแล้ว";
     }
 
     document.body.addEventListener('click', () => {
       if (!isAudioReady) initAudio();
     }, { once: true });
 
-    function playBellSound() {
-      if (!audioCtx) initAudio();
-      
-      const now = audioCtx.currentTime;
-      // เสียงกระดิ่งปิ๊งๆ
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, now); // A5
-      osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
-
-      gain.gain.setValueAtTime(1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(now);
-      osc.stop(now + 1.5);
-    }
-
     function playDanceMusic() {
-      if (!audioCtx) return;
+      if (!audioCtx) initAudio();
       stopDanceMusic();
 
-      const bpm = 128;
+      document.getElementById('playingBanner').style.display = 'block';
+      document.getElementById('stopBtn').style.display = 'inline-block';
+
+      const bpm = 132;
       const stepTime = 60 / bpm / 4;
       let step = 0;
 
       danceMusicLoop = setInterval(() => {
         const now = audioCtx.currentTime;
         
-        // Kick Bass
+        // Kick Bass (จังหวะเบสแน่นๆ)
         if (step % 4 === 0) {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.18);
           gain.gain.setValueAtTime(1, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
           osc.start(now);
-          osc.stop(now + 0.15);
+          osc.stop(now + 0.18);
         }
 
-        // Synth Melody
+        // Synth Melody (ทำนองดนตรีปลุกใจ)
         if (step % 2 === 0) {
-          const notes = [261.63, 329.63, 392.00, 523.25]; // C E G C
+          const notes = [261.63, 329.63, 392.00, 523.25, 587.33, 659.25]; // C E G C D E
           const note = notes[(step / 2) % notes.length];
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
           osc.type = 'sawtooth';
           osc.frequency.setValueAtTime(note, now);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
           osc.start(now);
-          osc.stop(now + 0.1);
+          osc.stop(now + 0.12);
         }
 
         step = (step + 1) % 16;
       }, stepTime * 1000);
+
+      // ตั้งเวลาให้เพลงหยุดอัตโนมัติหลังจากเล่นไป 30 วินาที
+      danceTimeout = setTimeout(() => {
+        stopDanceMusic();
+      }, 30000);
     }
 
     function stopDanceMusic() {
@@ -368,6 +320,12 @@
         clearInterval(danceMusicLoop);
         danceMusicLoop = null;
       }
+      if (danceTimeout) {
+        clearTimeout(danceTimeout);
+        danceTimeout = null;
+      }
+      document.getElementById('playingBanner').style.display = 'none';
+      document.getElementById('stopBtn').style.display = 'none';
     }
 
     let lastTriggeredMinute = "";
@@ -382,7 +340,6 @@
 
       document.getElementById('currentTime').innerText = currentTimeStr;
 
-      // ค้นหารอบถัดไป
       let nextTarget = null;
       for (let slot of timeslots) {
         if (slot > timeHHMM) {
@@ -391,13 +348,12 @@
         }
       }
 
-      // เช็คว่าถึงเวลาเตือนหรือยัง
+      // เช็คเมื่อถึงเวลาเตือน
       if (timeslots.includes(timeHHMM) && s === "00" && lastTriggeredMinute !== timeHHMM) {
         lastTriggeredMinute = timeHHMM;
-        triggerAlarm();
+        triggerDanceAlarm();
       }
 
-      // แสดงเวลาถัดไป & นับถอยหลัง
       if (nextTarget) {
         document.getElementById('nextTime').innerText = `รอบถัดไป: ${nextTarget} น.`;
         const [targetH, targetM] = nextTarget.split(':').map(Number);
@@ -436,30 +392,15 @@
       });
     }
 
-    function triggerAlarm() {
-      initAudio();
-      playBellSound();
-      
-      // แสดง Modal
-      document.getElementById('alarmModal').style.display = 'flex';
+    function triggerDanceAlarm() {
+      playDanceMusic();
 
-      // Desktop Notification
       if (Notification.permission === 'granted') {
-        new Notification("⏰ ได้เวลาลุกเต้นยืดเส้นยืดสาย!", {
-          body: "กดที่นี่เพื่อเปิดเพลงเต้นและยืดเส้นยืดสาย 30 วินาที",
+        new Notification("💃 ได้เวลาลุกยืดเส้นยืดสาย!", {
+          body: "ลุกขึ้นยืดเหยียดกัน 30 วินาทีจ้าาาา",
           icon: "https://cdn-icons-png.flaticon.com/512/3076/3076921.png"
         });
       }
-    }
-
-    function stopAlarmAndPlayDance() {
-      document.getElementById('alarmModal').style.display = 'none';
-      playDanceMusic();
-
-      // เล่นเพลง 20 วินาทีแล้วหยุดให้อัตโนมัติ
-      setTimeout(() => {
-        stopDanceMusic();
-      }, 20000);
     }
 
     function requestNotification() {
