@@ -44,6 +44,7 @@
       padding: 25px;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
       text-align: center;
+      position: relative;
     }
 
     h1 {
@@ -187,26 +188,34 @@
       font-weight: bold;
     }
 
-    /* ซ่อน YouTube Player ไว้เบื้องหลัง */
-    #youtube-player {
+    /* ซ่อน YouTube Player ให้ถูกต้องเพื่อไม่ให้เบราว์เซอร์บล็อกการเล่นเพลง */
+    .yt-container {
       position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
+      width: 200px;
+      height: 200px;
+      top: -9999px;
+      left: -9999px;
+      overflow: hidden;
     }
   </style>
 </head>
 <body>
 
-  <!-- ตัวเล่น YouTube ลับ -->
-  <div id="youtube-player"></div>
+  <!-- ตัวเล่น YouTube ซ่อนเบื้องหลัง -->
+  <div class="yt-container">
+    <div id="youtube-player"></div>
+  </div>
+
+  <!-- ตัวเล่นเพลงสำรอง mp3 กรณี YouTube ไม่ทำงาน -->
+  <audio id="fallbackAudio" preload="auto">
+    <source src="https://ia800501.us.archive.org/34/items/VillagePeopleYMCA/Village%20People%20-%20YMCA.mp3" type="audio/mpeg">
+  </audio>
 
   <div class="container">
-    <h1>🕺 เตือนลุกยืดเหยีด</h1>
+    <h1>🕺 เตือนลุกยืดเหยียด</h1>
     
     <div id="audioStatus" class="status-banner" onclick="initAudio()">
-      ⚠️ คลิกที่นี่เพื่อเปิดใช้งานระบบเสียง
+      ⚠️ คลิกที่นี่ 1 ครั้ง เพื่อเริ่มการทำงานของเสียง
     </div>
 
     <div id="playingBanner" class="playing-banner">
@@ -243,7 +252,9 @@
 
     let player = null;
     let isYoutubeReady = false;
+    let isAudioActivated = false;
     let danceTimeout = null;
+    const fallbackAudio = document.getElementById('fallbackAudio');
 
     // ID วิดีโอจาก YouTube Shorts: JJzgplzJUVg
     const youtubeVideoId = "JJzgplzJUVg"; 
@@ -251,8 +262,8 @@
     // โหลด YouTube Player
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('youtube-player', {
-        height: '0',
-        width: '0',
+        height: '200',
+        width: '200',
         videoId: youtubeVideoId,
         playerVars: {
           'autoplay': 0,
@@ -270,34 +281,58 @@
     }
 
     function initAudio() {
-      if (player && isYoutubeReady) {
-        player.playVideo();
-        player.pauseVideo(); // ปลดล็อกนโยบาย Autoplay ของเบราว์เซอร์
-        
-        const statusEl = document.getElementById('audioStatus');
-        statusEl.classList.add('ready');
-        statusEl.innerHTML = "🔊 ระบบเสียง YouTube Shorts พร้อมทำงานแล้ว";
+      isAudioActivated = true;
+      
+      // ปลดล็อกระบบเสียง mp3 สำรอง
+      fallbackAudio.play().then(() => {
+        fallbackAudio.pause();
+        fallbackAudio.currentTime = 0;
+      }).catch(e => console.log(e));
+
+      // ปลดล็อกระบบเสียง YouTube
+      if (player && isYoutubeReady && player.playVideo) {
+        try {
+          player.playVideo();
+          player.pauseVideo();
+        } catch(e) {}
       }
+      
+      const statusEl = document.getElementById('audioStatus');
+      statusEl.classList.add('ready');
+      statusEl.innerHTML = "🔊 ระบบเสียงพร้อมใช้งานแล้ว!";
     }
 
     document.body.addEventListener('click', () => {
-      initAudio();
+      if (!isAudioActivated) initAudio();
     }, { once: true });
 
     function playDanceMusic() {
-      if (!player || !isYoutubeReady) return;
-
       stopDanceMusic();
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      // เริ่มเล่นตั้งแต่ต้นคลิป Shorts (วินาทีที่ 0)
-      player.seekTo(0, true); 
-      player.playVideo();
+      let playedViaYoutube = false;
 
-      // คลิป Shorts มีความยาวประมาณ 30 วินาที ระบบจะหยุดเพลงให้อัตโนมัติเมื่อครบ 30 วินาที
+      // พยายามเล่นผ่าน YouTube ก่อน
+      if (player && isYoutubeReady && typeof player.playVideo === 'function') {
+        try {
+          player.seekTo(0, true); 
+          player.playVideo();
+          playedViaYoutube = true;
+        } catch(e) {
+          playedViaYoutube = false;
+        }
+      }
+
+      // หาก YouTube มีปัญหา เล่นผ่าน mp3 สำรองทันที
+      if (!playedViaYoutube) {
+        fallbackAudio.currentTime = 50; // เริ่มท่อนฮุก
+        fallbackAudio.play().catch(e => console.log(e));
+      }
+
+      // หยุดเพลงให้อัตโนมัติเมื่อผ่านไป 30 วินาที
       danceTimeout = setTimeout(() => {
         stopDanceMusic();
       }, 30000);
@@ -309,9 +344,16 @@
         danceTimeout = null;
       }
 
-      if (player && player.pauseVideo) {
-        player.pauseVideo();
+      // หยุดเพลง YouTube
+      if (player && typeof player.pauseVideo === 'function') {
+        try {
+          player.pauseVideo();
+        } catch(e) {}
       }
+
+      // หยุดเพลง mp3 สำรอง
+      fallbackAudio.pause();
+      fallbackAudio.currentTime = 0;
 
       document.getElementById('playingBanner').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'none';
@@ -398,7 +440,7 @@
       playDanceMusic();
 
       if (Notification.permission === 'granted') {
-        new Notification("🕺 ได้เวลาลุกยืดเหยีด", {
+        new Notification("🕺 ได้เวลาลุกยืดเหยียด", {
           body: "🎶 ลุก ได้ ลุก ลุก ค่ะ ลุก! 🕺! ลุกขึ้นยืดเหยียด 30 วินาทีกันจ้าาา",
           icon: "https://cdn-icons-png.flaticon.com/512/3076/3076921.png"
         });
