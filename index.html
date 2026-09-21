@@ -222,7 +222,7 @@
     <div id="scheduleGrid" class="schedule-grid"></div>
 
     <!-- ข้อความผู้จัดทำด้านล่าง -->
-    <div class="author-footer">ผู้จัดทำ: ครูวิมมี่</div>
+    <div class="author-footer">by ครูวิมมี่</div>
   </div>
 
   <script>
@@ -236,6 +236,13 @@
     let danceTimeout = null;
     const bgMusic = document.getElementById('bgMusic');
 
+    // ตรวจสอบเวลาเพลงให้อยู่ในกลุ่ม 1:00 - 1:30 (60 ถึง 90 วินาที)
+    bgMusic.addEventListener('timeupdate', () => {
+      if (bgMusic.currentTime >= 90) {
+        stopDanceMusic();
+      }
+    });
+
     function playMp3Music() {
       stopDanceMusic();
 
@@ -243,13 +250,13 @@
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      // เล่นเพลง local Y.M.C.A..mp3
-      bgMusic.currentTime = 0;
+      // เริ่มเล่นเพลง Y.M.C.A..mp3 ที่นาที 1:00 (วินาทีที่ 60)
+      bgMusic.currentTime = 60;
       bgMusic.play().catch(error => {
         console.log("Audio play failed:", error);
       });
 
-      // หยุดเล่นเพลงอัตโนมัติเมื่อผ่านไป 30 วินาที
+      // ตั้งเวลาสำรอง หยุดเมื่อครบ 30 วินาที (นาทีที่ 1:30 พอดี)
       danceTimeout = setTimeout(() => {
         stopDanceMusic();
       }, 30000);
@@ -262,7 +269,7 @@
       }
 
       bgMusic.pause();
-      bgMusic.currentTime = 0;
+      bgMusic.currentTime = 60;
 
       document.getElementById('playingBanner').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'none';
