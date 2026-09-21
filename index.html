@@ -63,7 +63,7 @@
             <div id="current-time-display" class="text-3xl sm:text-4xl font-extrabold tracking-wider mb-2 font-mono">00:00:00</div>
             
             <div class="pt-2 border-t border-orange-400/40 flex justify-between items-center text-xs sm:text-sm">
-                <span class="text-orange-100">รอบเตือนถัดไป:</span>
+                <span class="text-orange-100">รอบถัดไป:</span>
                 <span id="next-alarm-time" class="font-bold bg-white/20 px-2.5 py-0.5 rounded-full text-white">09:00 น.</span>
             </div>
             <div class="flex justify-between items-center text-xs sm:text-sm mt-1">
@@ -126,7 +126,7 @@
         <!-- Schedule Checklist -->
         <div>
             <h3 class="text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
-                <span>ตารางการเตือนวันนี้ (09:00 - 16:00)</span>
+                <span>ตารางการเตือนวันนี้ (09:00 - 15:00)</span>
                 <span id="slots-completed-count" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-normal">0/15 สำเร็จ</span>
             </h3>
             
@@ -143,12 +143,12 @@
     </div>
 
     <script>
-        // Array of 15 scheduled times from 09:00 to 16:00
+        // Array of 15 scheduled times from 09:00 to 15:00
         const SCHEDULE_TIMES = [
             "09:00", "09:30", "10:00", "10:30", 
             "11:00", "11:30",  
             "13:00", "13:30", "14:00", "14:30", 
-            "15:00", "15:30", "16:00"
+            "15:00"
         ];
 
         // State variables
