@@ -179,9 +179,20 @@
       color: #00f2fe;
       font-weight: bold;
     }
+
+    .author-footer {
+      margin-top: 25px;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 300;
+      letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Element เสียงสำหรับเล่นไฟล์ local Y.M.C.A..mp3 -->
+  <audio id="bgMusic" src="Y.M.C.A..mp3" preload="auto"></audio>
 
   <div class="container">
     <h1>🕺 เตือนลุกยืดเหยียด</h1>
@@ -209,6 +220,9 @@
 
     <div class="schedule-title">⏱️ ตารางเวลาเตือนวันนี้ (09:00 - 16:00 น.)</div>
     <div id="scheduleGrid" class="schedule-grid"></div>
+
+    <!-- ข้อความผู้จัดทำด้านล่าง -->
+    <div class="author-footer">ผู้จัดทำ: ครูวิมมี่</div>
   </div>
 
   <script>
@@ -219,73 +233,36 @@
       "15:00", "15:30", "16:00"
     ];
 
-    let audioCtx = null;
-    let isPlaying = false;
-    let musicInterval = null;
+    let danceTimeout = null;
+    const bgMusic = document.getElementById('bgMusic');
 
-    // สร้างระบบ Web Audio เสียงบี๊บดนตรีในตัว (ไม่ต้องใช้ไฟล์ภายนอก)
-    function playBeep(freq, duration, type = 'sine') {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      
-      osc.type = type;
-      osc.frequency.value = freq;
-      
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    }
-
-    function playSynthMusic() {
-      if (isPlaying) return;
-      isPlaying = true;
+    function playMp3Music() {
+      stopDanceMusic();
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      // พากย์เสียงพูดเตือนเป็นภาษาไทย
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance("ได้เวลาลุกยืดเหยียดร่างกายแล้วค่ะ งานการเงินลุกยืดตัวกันเถอะค่ะ");
-        msg.lang = 'th-TH';
-        msg.rate = 1.0;
-        window.speechSynthesis.speak(msg);
-      }
+      // เล่นเพลง local Y.M.C.A..mp3
+      bgMusic.currentTime = 0;
+      bgMusic.play().catch(error => {
+        console.log("Audio play failed:", error);
+      });
 
-      // เล่นเสียงจังหวะดนตรีเต้น 15 วินาที
-      const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 349.23, 392.00, 523.25];
-      let step = 0;
-
-      musicInterval = setInterval(() => {
-        if (!isPlaying) return;
-        playBeep(notes[step % notes.length], 0.25, 'triangle');
-        step++;
-      }, 300);
-
-      // หยุดเองหลังผ่านไป 15 วินาที
-      setTimeout(() => {
+      // หยุดเล่นเพลงอัตโนมัติเมื่อผ่านไป 30 วินาที
+      danceTimeout = setTimeout(() => {
         stopDanceMusic();
-      }, 15000);
+      }, 30000);
     }
 
     function stopDanceMusic() {
-      isPlaying = false;
-      if (musicInterval) {
-        clearInterval(musicInterval);
-        musicInterval = null;
+      if (danceTimeout) {
+        clearTimeout(danceTimeout);
+        danceTimeout = null;
       }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
 
       document.getElementById('playingBanner').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'none';
@@ -369,7 +346,7 @@
     }
 
     function triggerDanceAlarm() {
-      playSynthMusic();
+      playMp3Music();
 
       if (Notification.permission === 'granted') {
         new Notification("🕺 ได้เวลาลุกยืดเหยียด", {
