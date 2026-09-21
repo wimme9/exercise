@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>นาฬิกาเตือนลุกยืดเหยีด (09:00 - 16:00)</title>
+  <title>นาฬิกาเตือนลุกยืดเหยีด</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -186,26 +186,32 @@
       color: #00f2fe;
       font-weight: bold;
     }
+
+    /* ซ่อน YouTube Player ไว้เบื้องหลัง */
+    #youtube-player {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Element สำหรับเล่นไฟล์เพลง mp3 จริง -->
-  <audio id="ymcaAudio" preload="auto">
-    <!-- ลิงก์ตัวอย่างไฟล์ mp3 (เปลี่ยนเป็น URL เพลงของคุณเองได้) -->
-    <source src="https://www.youtube.com/shorts/hGY9W2cyw8I" type="audio/mpeg">
-  </audio>
+  <!-- ตัวเล่น YouTube ลับ -->
+  <div id="youtube-player"></div>
 
   <div class="container">
-    <h1>🕺 เตือนลุกยืดเหยียด</h1>
+    <h1>🕺 เตือนลุกยืดเหยีด</h1>
     
     <div id="audioStatus" class="status-banner" onclick="initAudio()">
-      ⚠️ คลิกที่นี่หนึ่งครั้ง เพื่อเปิดใช้งานระบบเสียงอัตโนมัติ
+      ⚠️ คลิกที่นี่เพื่อเปิดใช้งานระบบเสียง
     </div>
 
     <div id="playingBanner" class="playing-banner">
-      🎶 IT'S FUN TO STAY AT THE Y.M.C.A.! 🕺<br>
-      <span style="font-size: 0.9rem; font-weight: normal;">งานการเงิน... เราจะแข็งแรงไปด้วยกัน!</span>
+      🎶 ลุก ได้ ลุก ลุก ค่ะ ลุก! 🕺<br>
+      <span style="font-size: 0.9rem; font-weight: normal;">งานการเงิน... ได้เวลาเต้นขยับร่างกายแล้ว!</span>
     </div>
 
     <div class="clock-card">
@@ -215,7 +221,7 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเล่นเพลง</button>
+      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเพลง</button>
       <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเพลง</button>
       <button class="btn btn-secondary" onclick="requestNotification()">🔔 เปิดการแจ้งเตือน</button>
     </div>
@@ -223,6 +229,9 @@
     <div class="schedule-title">⏱️ ตารางเวลาเตือนวันนี้ (09:00 - 16:00 น.)</div>
     <div id="scheduleGrid" class="schedule-grid"></div>
   </div>
+
+  <!-- โหลด YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
     const timeslots = [
@@ -232,9 +241,82 @@
       "15:00", "15:30", "16:00"
     ];
 
-    let isAudioReady = false;
+    let player = null;
+    let isYoutubeReady = false;
     let danceTimeout = null;
-    const audioPlayer = document.getElementById('ymcaAudio');
+
+    // ID วิดีโอจาก YouTube Shorts: JJzgplzJUVg
+    const youtubeVideoId = "JJzgplzJUVg"; 
+
+    // โหลด YouTube Player
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('youtube-player', {
+        height: '0',
+        width: '0',
+        videoId: youtubeVideoId,
+        playerVars: {
+          'autoplay': 0,
+          'controls': 0,
+          'playsinline': 1
+        },
+        events: {
+          'onReady': onPlayerReady
+        }
+      });
+    }
+
+    function onPlayerReady(event) {
+      isYoutubeReady = true;
+    }
+
+    function initAudio() {
+      if (player && isYoutubeReady) {
+        player.playVideo();
+        player.pauseVideo(); // ปลดล็อกนโยบาย Autoplay ของเบราว์เซอร์
+        
+        const statusEl = document.getElementById('audioStatus');
+        statusEl.classList.add('ready');
+        statusEl.innerHTML = "🔊 ระบบเสียง YouTube Shorts พร้อมทำงานแล้ว";
+      }
+    }
+
+    document.body.addEventListener('click', () => {
+      initAudio();
+    }, { once: true });
+
+    function playDanceMusic() {
+      if (!player || !isYoutubeReady) return;
+
+      stopDanceMusic();
+
+      document.getElementById('playingBanner').style.display = 'block';
+      document.getElementById('stopBtn').style.display = 'inline-block';
+      document.body.classList.add('disco-mode');
+
+      // เริ่มเล่นตั้งแต่ต้นคลิป Shorts (วินาทีที่ 0)
+      player.seekTo(0, true); 
+      player.playVideo();
+
+      // คลิป Shorts มีความยาวประมาณ 30 วินาที ระบบจะหยุดเพลงให้อัตโนมัติเมื่อครบ 30 วินาที
+      danceTimeout = setTimeout(() => {
+        stopDanceMusic();
+      }, 30000);
+    }
+
+    function stopDanceMusic() {
+      if (danceTimeout) {
+        clearTimeout(danceTimeout);
+        danceTimeout = null;
+      }
+
+      if (player && player.pauseVideo) {
+        player.pauseVideo();
+      }
+
+      document.getElementById('playingBanner').style.display = 'none';
+      document.getElementById('stopBtn').style.display = 'none';
+      document.body.classList.remove('disco-mode');
+    }
 
     // Web Worker ป้องกันเวลาหยุดเดินเมื่อสลับ Tab
     const workerCode = `
@@ -248,56 +330,6 @@
     worker.onmessage = function() {
       updateClock();
     };
-
-    function initAudio() {
-      // โหลดเตรียมไว้และปลดล็อกนโยบาย Autoplay ของเบราว์เซอร์
-      audioPlayer.play().then(() => {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
-        isAudioReady = true;
-        
-        const statusEl = document.getElementById('audioStatus');
-        statusEl.classList.add('ready');
-        statusEl.innerHTML = "🔊 ระบบเสียงพร้อมทำงานแล้ว";
-      }).catch(err => {
-        console.log("Audio unlock failed, wait for click", err);
-      });
-    }
-
-    document.body.addEventListener('click', () => {
-      if (!isAudioReady) initAudio();
-    }, { once: true });
-
-    function playDanceMusic() {
-      stopDanceMusic();
-
-      document.getElementById('playingBanner').style.display = 'block';
-      document.getElementById('stopBtn').style.display = 'inline-block';
-      document.body.classList.add('disco-mode');
-
-      // เริ่มเล่นตั้งแต่ต้นเพลง (หรือจะปรับวินาทีเริ่มต้น เช่น audioPlayer.currentTime = 50 เพื่อเริ่มท่อนฮุกเลยก็ได้)
-      audioPlayer.currentTime = 0; 
-      audioPlayer.play();
-
-      // ตั้งเวลาให้เพลงหยุดอัตโนมัติหลังจากเล่นไป 30 วินาที (หรือเปลี่ยนตัวเลขตามต้องการ)
-      danceTimeout = setTimeout(() => {
-        stopDanceMusic();
-      }, 30000);
-    }
-
-    function stopDanceMusic() {
-      if (danceTimeout) {
-        clearTimeout(danceTimeout);
-        danceTimeout = null;
-      }
-
-      audioPlayer.pause();
-      audioPlayer.currentTime = 0;
-
-      document.getElementById('playingBanner').style.display = 'none';
-      document.getElementById('stopBtn').style.display = 'none';
-      document.body.classList.remove('disco-mode');
-    }
 
     let lastTriggeredMinute = "";
 
@@ -319,7 +351,6 @@
         }
       }
 
-      // เช็คเมื่อถึงเวลาเตือน
       if (timeslots.includes(timeHHMM) && s === "00" && lastTriggeredMinute !== timeHHMM) {
         lastTriggeredMinute = timeHHMM;
         triggerDanceAlarm();
@@ -367,8 +398,8 @@
       playDanceMusic();
 
       if (Notification.permission === 'granted') {
-        new Notification("🕺 ได้เวลาลุกเต้น Y.M.C.A.!", {
-          body: "It's fun to stay at the Y.M.C.A.! ลุกขึ้นยืดเหยียด 30 วินาทีกันจ้าาา",
+        new Notification("🕺 ได้เวลาลุกยืดเหยีด", {
+          body: "🎶 ลุก ได้ ลุก ลุก ค่ะ ลุก! 🕺! ลุกขึ้นยืดเหยียด 30 วินาทีกันจ้าาา",
           icon: "https://cdn-icons-png.flaticon.com/512/3076/3076921.png"
         });
       }
