@@ -44,7 +44,6 @@
       padding: 25px;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
       text-align: center;
-      position: relative;
     }
 
     h1 {
@@ -54,21 +53,14 @@
     }
 
     .status-banner {
-      background: rgba(255, 193, 7, 0.2);
-      border: 1px solid #ffc107;
-      color: #ffeb3b;
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid #4caf50;
+      color: #81c784;
       padding: 10px 15px;
       border-radius: 10px;
       font-size: 0.9rem;
       margin-bottom: 20px;
-      cursor: pointer;
       transition: all 0.3s;
-    }
-
-    .status-banner.ready {
-      background: rgba(76, 175, 80, 0.2);
-      border-color: #4caf50;
-      color: #81c784;
     }
 
     .clock-card {
@@ -187,35 +179,15 @@
       color: #00f2fe;
       font-weight: bold;
     }
-
-    /* ซ่อน YouTube Player ให้ถูกต้องเพื่อไม่ให้เบราว์เซอร์บล็อกการเล่นเพลง */
-    .yt-container {
-      position: absolute;
-      width: 200px;
-      height: 200px;
-      top: -9999px;
-      left: -9999px;
-      overflow: hidden;
-    }
   </style>
 </head>
 <body>
 
-  <!-- ตัวเล่น YouTube ซ่อนเบื้องหลัง -->
-  <div class="yt-container">
-    <div id="youtube-player"></div>
-  </div>
-
-  <!-- ตัวเล่นเพลงสำรอง mp3 กรณี YouTube ไม่ทำงาน -->
-  <audio id="fallbackAudio" preload="auto">
-    <source src="https://ia800501.us.archive.org/34/items/VillagePeopleYMCA/Village%20People%20-%20YMCA.mp3" type="audio/mpeg">
-  </audio>
-
   <div class="container">
     <h1>🕺 เตือนลุกยืดเหยียด</h1>
     
-    <div id="audioStatus" class="status-banner" onclick="initAudio()">
-      ⚠️ คลิกที่นี่ 1 ครั้ง เพื่อเริ่มการทำงานของเสียง
+    <div id="audioStatus" class="status-banner">
+      🔊 ระบบเสียงแจ้งเตือนอัตโนมัติพร้อมทำงานแล้ว
     </div>
 
     <div id="playingBanner" class="playing-banner">
@@ -230,17 +202,14 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเพลง</button>
-      <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเพลง</button>
+      <button class="btn" onclick="triggerDanceAlarm()">⚡ ทดสอบเพลงเตือน</button>
+      <button id="stopBtn" class="btn btn-stop" onclick="stopDanceMusic()">🛑 หยุดเสียง</button>
       <button class="btn btn-secondary" onclick="requestNotification()">🔔 เปิดการแจ้งเตือน</button>
     </div>
 
     <div class="schedule-title">⏱️ ตารางเวลาเตือนวันนี้ (09:00 - 16:00 น.)</div>
     <div id="scheduleGrid" class="schedule-grid"></div>
   </div>
-
-  <!-- โหลด YouTube IFrame API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
     const timeslots = [
@@ -250,117 +219,80 @@
       "15:00", "15:30", "16:00"
     ];
 
-    let player = null;
-    let isYoutubeReady = false;
-    let isAudioActivated = false;
-    let danceTimeout = null;
-    const fallbackAudio = document.getElementById('fallbackAudio');
+    let audioCtx = null;
+    let isPlaying = false;
+    let musicInterval = null;
 
-    // ID วิดีโอจาก YouTube Shorts: JJzgplzJUVg
-    const youtubeVideoId = "JJzgplzJUVg"; 
+    // สร้างระบบ Web Audio เสียงบี๊บดนตรีในตัว (ไม่ต้องใช้ไฟล์ภายนอก)
+    function playBeep(freq, duration, type = 'sine') {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    // โหลด YouTube Player
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('youtube-player', {
-        height: '200',
-        width: '200',
-        videoId: youtubeVideoId,
-        playerVars: {
-          'autoplay': 0,
-          'controls': 0,
-          'playsinline': 1
-        },
-        events: {
-          'onReady': onPlayerReady
-        }
-      });
-    }
-
-    function onPlayerReady(event) {
-      isYoutubeReady = true;
-    }
-
-    function initAudio() {
-      isAudioActivated = true;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
       
-      // ปลดล็อกระบบเสียง mp3 สำรอง
-      fallbackAudio.play().then(() => {
-        fallbackAudio.pause();
-        fallbackAudio.currentTime = 0;
-      }).catch(e => console.log(e));
-
-      // ปลดล็อกระบบเสียง YouTube
-      if (player && isYoutubeReady && player.playVideo) {
-        try {
-          player.playVideo();
-          player.pauseVideo();
-        } catch(e) {}
-      }
+      osc.type = type;
+      osc.frequency.value = freq;
       
-      const statusEl = document.getElementById('audioStatus');
-      statusEl.classList.add('ready');
-      statusEl.innerHTML = "🔊 ระบบเสียงพร้อมใช้งานแล้ว!";
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
     }
 
-    document.body.addEventListener('click', () => {
-      if (!isAudioActivated) initAudio();
-    }, { once: true });
-
-    function playDanceMusic() {
-      stopDanceMusic();
+    function playSynthMusic() {
+      if (isPlaying) return;
+      isPlaying = true;
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      let playedViaYoutube = false;
-
-      // พยายามเล่นผ่าน YouTube ก่อน
-      if (player && isYoutubeReady && typeof player.playVideo === 'function') {
-        try {
-          player.seekTo(0, true); 
-          player.playVideo();
-          playedViaYoutube = true;
-        } catch(e) {
-          playedViaYoutube = false;
-        }
+      // พากย์เสียงพูดเตือนเป็นภาษาไทย
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("ได้เวลาลุกยืดเหยียดร่างกายแล้วค่ะ งานการเงินลุกยืดตัวกันเถอะค่ะ");
+        msg.lang = 'th-TH';
+        msg.rate = 1.0;
+        window.speechSynthesis.speak(msg);
       }
 
-      // หาก YouTube มีปัญหา เล่นผ่าน mp3 สำรองทันที
-      if (!playedViaYoutube) {
-        fallbackAudio.currentTime = 50; // เริ่มท่อนฮุก
-        fallbackAudio.play().catch(e => console.log(e));
-      }
+      // เล่นเสียงจังหวะดนตรีเต้น 15 วินาที
+      const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 349.23, 392.00, 523.25];
+      let step = 0;
 
-      // หยุดเพลงให้อัตโนมัติเมื่อผ่านไป 30 วินาที
-      danceTimeout = setTimeout(() => {
+      musicInterval = setInterval(() => {
+        if (!isPlaying) return;
+        playBeep(notes[step % notes.length], 0.25, 'triangle');
+        step++;
+      }, 300);
+
+      // หยุดเองหลังผ่านไป 15 วินาที
+      setTimeout(() => {
         stopDanceMusic();
-      }, 30000);
+      }, 15000);
     }
 
     function stopDanceMusic() {
-      if (danceTimeout) {
-        clearTimeout(danceTimeout);
-        danceTimeout = null;
+      isPlaying = false;
+      if (musicInterval) {
+        clearInterval(musicInterval);
+        musicInterval = null;
       }
-
-      // หยุดเพลง YouTube
-      if (player && typeof player.pauseVideo === 'function') {
-        try {
-          player.pauseVideo();
-        } catch(e) {}
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
       }
-
-      // หยุดเพลง mp3 สำรอง
-      fallbackAudio.pause();
-      fallbackAudio.currentTime = 0;
 
       document.getElementById('playingBanner').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'none';
       document.body.classList.remove('disco-mode');
     }
 
-    // Web Worker ป้องกันเวลาหยุดเดินเมื่อสลับ Tab
+    // Web Worker ป้องกันนาฬิกาหยุดเดินเมื่อสลับ Tab
     const workerCode = `
       setInterval(() => {
         postMessage('tick');
@@ -437,7 +369,7 @@
     }
 
     function triggerDanceAlarm() {
-      playDanceMusic();
+      playSynthMusic();
 
       if (Notification.permission === 'granted') {
         new Notification("🕺 ได้เวลาลุกยืดเหยียด", {
