@@ -237,11 +237,11 @@
     const bgMusic = document.getElementById('bgMusic');
 
     // ตรวจสอบเวลาเพลงให้อยู่ในกลุ่ม 1:00 - 2:00 (60 ถึง 120 วินาที)
-    bgMusic.addEventListener('timeupdate', () => {
+    /*bgMusic.addEventListener('timeupdate', () => {
       if (bgMusic.currentTime >= 120) {
         stopDanceMusic();
       }
-    });
+    });*/
 
     function playMp3Music() {
       stopDanceMusic();
@@ -251,15 +251,21 @@
       document.body.classList.add('disco-mode');
 
       // เริ่มเล่นเพลง Y.M.C.A..mp3 ที่นาที 1:00 (วินาทีที่ 60)
-      bgMusic.currentTime = 60;
+      //bgMusic.currentTime = 60;
+      bgMusic.currentTime = 0;
       bgMusic.play().catch(error => {
         console.log("Audio play failed:", error);
       });
 
       // ตั้งเวลาสำรอง หยุดเมื่อครบ 60 วินาที (นาทีที่ 2:00 พอดี)
-      danceTimeout = setTimeout(() => {
+      /*danceTimeout = setTimeout(() => {
         stopDanceMusic();
-      }, 60000);
+      }, 60000);*/
+
+      // สั่งให้หยุดระบบและปิดไฟดิสโก้ เมื่อเพลงเล่นจบ
+      bgMusic.onended = () => {
+        stopDanceMusic();
+      };
     }
 
     function stopDanceMusic() {
@@ -269,7 +275,8 @@
       }
 
       bgMusic.pause();
-      bgMusic.currentTime = 60;
+      //bgMusic.currentTime = 60;
+      bgMusic.currentTime = 0;
 
       document.getElementById('playingBanner').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'none';
