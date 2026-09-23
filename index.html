@@ -191,8 +191,8 @@
 </head>
 <body>
 
-  <!-- Element เสียงสำหรับเล่นไฟล์ local Y.M.C.A..mp3 -->
-  <audio id="bgMusic" src="Y.M.C.A..mp3" preload="auto"></audio>
+  <!-- Audio element ไม่ใส่ src เพื่อรอรับค่าการสุ่มเพลงจากสคริปต์ -->
+  <audio id="bgMusic" preload="auto"></audio>
 
   <div class="container">
     <h1>🕺 เตือนลุกยืดเหยียด</h1>
@@ -233,36 +233,36 @@
       "15:00", "15:30", "16:00"
     ];
 
+    // รายชื่อไฟล์เพลงที่ใช้นำมาสุ่ม (สามารถเพิ่มหรือลดได้ตามต้องการ)
+    const songList = [
+      "song1.mp3",
+      "song2.mp3",
+      "song3.mp3",
+      "song4.mp3",
+      "song5.mp3"
+    ];
+
     let danceTimeout = null;
     const bgMusic = document.getElementById('bgMusic');
 
-    // ตรวจสอบเวลาเพลงให้อยู่ในกลุ่ม 1:00 - 2:00 (60 ถึง 120 วินาที)
-    /*bgMusic.addEventListener('timeupdate', () => {
-      if (bgMusic.currentTime >= 120) {
-        stopDanceMusic();
-      }
-    });*/
-
     function playMp3Music() {
       stopDanceMusic();
+
+      // สุ่มเลือก 1 เพลงจากรายการ songList
+      const randomIndex = Math.floor(Math.random() * songList.length);
+      bgMusic.src = songList[randomIndex];
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      // เริ่มเล่นเพลง Y.M.C.A..mp3 ที่นาที 1:00 (วินาทีที่ 60)
-      //bgMusic.currentTime = 60;
+      // เริ่มเล่นตั้งแต่ต้นเพลง
       bgMusic.currentTime = 0;
       bgMusic.play().catch(error => {
         console.log("Audio play failed:", error);
       });
 
-      // ตั้งเวลาสำรอง หยุดเมื่อครบ 60 วินาที (นาทีที่ 2:00 พอดี)
-      /*danceTimeout = setTimeout(() => {
-        stopDanceMusic();
-      }, 60000);*/
-
-      // สั่งให้หยุดระบบและปิดไฟดิสโก้ เมื่อเพลงเล่นจบ
+      // เมื่อเพลงเล่นจบ ให้หยุดสถานะเพลงและปิดไฟดิสโก้อัตโนมัติ
       bgMusic.onended = () => {
         stopDanceMusic();
       };
@@ -275,7 +275,6 @@
       }
 
       bgMusic.pause();
-      //bgMusic.currentTime = 60;
       bgMusic.currentTime = 0;
 
       document.getElementById('playingBanner').style.display = 'none';
@@ -364,7 +363,7 @@
 
       if (Notification.permission === 'granted') {
         new Notification("🕺 ได้เวลาลุกยืดเหยียด", {
-          body: "🎶 ลุก ได้ ลุก ลุก ค่ะ ลุก! 🕺! ลุกขึ้นยืดเหยียด 30 วินาทีกันจ้าาา",
+          body: "🎶 ลุก ได้ ลุก ลุก ค่ะ ลุก! 🕺! ลุกขึ้นยืดเหยียดเต้นผ่อนคลายกันจ้าาา",
           icon: "https://cdn-icons-png.flaticon.com/512/3076/3076921.png"
         });
       }
