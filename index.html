@@ -248,26 +248,34 @@
     function playMp3Music() {
       stopDanceMusic();
 
-      // สุ่มเลือก 1 เพลงจากรายการ songList
+      // สุ่มเลือก 1 เพลงจากรายการ
       const randomIndex = Math.floor(Math.random() * songList.length);
-      bgMusic.src = songList[randomIndex];
+      const selectedSong = songList[randomIndex];
+      
+      console.log(`[System] กำลังเล่นเพลงสุ่มลำดับที่ ${randomIndex + 1}: ${selectedSong}`);
+      bgMusic.src = selectedSong;
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      // เริ่มเล่นตั้งแต่ต้นเพลง
       bgMusic.currentTime = 0;
+      
       bgMusic.play().catch(error => {
-        console.log("Audio play failed:", error);
+        console.error(`❌ ไม่สามารถเล่นไฟล์ "${selectedSong}" ได้:`, error);
+        
+        // ถ้าไฟล์หาไม่เจอ ให้แสดงแจ้งเตือนบอกว่าไฟล์ไหนมีปัญหา
+        if (error.name === "NotSupportedError") {
+          alert(`⚠️ ไม่พบไฟล์เพลง "${selectedSong}" ในโฟลเดอร์\nกรุณาเช็กชื่อไฟล์เพลงในโฟลเดอร์อีกครั้งครับ`);
+        }
+        
+        stopDanceMusic();
       });
 
-      // เมื่อเพลงเล่นจบ ให้หยุดสถานะเพลงและปิดไฟดิสโก้อัตโนมัติ
       bgMusic.onended = () => {
         stopDanceMusic();
       };
     }
-
     function stopDanceMusic() {
       if (danceTimeout) {
         clearTimeout(danceTimeout);
