@@ -244,39 +244,33 @@
 
     let danceTimeout = null;
     const bgMusic = document.getElementById('bgMusic');
-    let isPlaying = false;
-
     function playMp3Music() {
       stopDanceMusic();
 
-      // 1. สุ่มเลือกเพลง
+      // สุ่มเลือก 1 เพลงจากรายการ
       const randomIndex = Math.floor(Math.random() * songList.length);
       const selectedSong = songList[randomIndex];
       
-      console.log(`[System] เลือกเพลง: ${selectedSong}`);
-
-      // 2. ใส่ ./ กำหนด Relative Path ชัดเจน
-      bgMusic.src = `./${selectedSong}`;
-      bgMusic.load(); // บังคับให้เบราว์เซอร์โหลดไฟล์ใหม่ทันที
+      console.log(`[System] กำลังเล่นเพลงสุ่มลำดับที่ ${randomIndex + 1}: ${selectedSong}`);
+      bgMusic.src = selectedSong;
 
       document.getElementById('playingBanner').style.display = 'block';
       document.getElementById('stopBtn').style.display = 'inline-block';
       document.body.classList.add('disco-mode');
 
-      // 3. รอให้ไฟล์เพลงพร้อมเล่นก่อน แล้วค่อยสั่ง play()
-      bgMusic.oncanplaythrough = () => {
-        if (!isPlaying) {
-          isPlaying = true;
-          bgMusic.play().catch(error => {
-            console.error("Audio play failed:", error);
-            // กรณีติด Autoplay Policy
-            document.getElementById('audioStatus').style.background = 'rgba(255, 0, 0, 0.4)';
-            document.getElementById('audioStatus').innerHTML = '⚠️ เบราว์เซอร์บล็อกเสียง! กรุณาคลิกที่หน้าจอ 1 ครั้งเพื่อเริ่มเล่น';
-          });
+      bgMusic.currentTime = 0;
+      
+      bgMusic.play().catch(error => {
+        console.error(`❌ ไม่สามารถเล่นไฟล์ "${selectedSong}" ได้:`, error);
+        
+        // ถ้าไฟล์หาไม่เจอ ให้แสดงแจ้งเตือนบอกว่าไฟล์ไหนมีปัญหา
+        if (error.name === "NotSupportedError") {
+          alert(`⚠️ ไม่พบไฟล์เพลง "${selectedSong}" ในโฟลเดอร์\nกรุณาเช็กชื่อไฟล์เพลงในโฟลเดอร์อีกครั้งครับ`);
         }
-      };
+        
+        stopDanceMusic();
+      });
 
-      // 4. สั่งหยุดเมื่อเล่นจบ
       bgMusic.onended = () => {
         stopDanceMusic();
       };
