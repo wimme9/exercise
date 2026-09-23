@@ -236,9 +236,9 @@
     let danceTimeout = null;
     const bgMusic = document.getElementById('bgMusic');
 
-    // ตรวจสอบเวลาเพลงให้อยู่ในกลุ่ม 1:00 - 1:30 (60 ถึง 90 วินาที)
+    // ตรวจสอบเวลาเพลงให้อยู่ในกลุ่ม 1:00 - 2:00 (60 ถึง 120 วินาที)
     bgMusic.addEventListener('timeupdate', () => {
-      if (bgMusic.currentTime >= 90) {
+      if (bgMusic.currentTime >= 120) {
         stopDanceMusic();
       }
     });
@@ -256,10 +256,10 @@
         console.log("Audio play failed:", error);
       });
 
-      // ตั้งเวลาสำรอง หยุดเมื่อครบ 30 วินาที (นาทีที่ 1:30 พอดี)
+      // ตั้งเวลาสำรอง หยุดเมื่อครบ 60 วินาที (นาทีที่ 2:00 พอดี)
       danceTimeout = setTimeout(() => {
         stopDanceMusic();
-      }, 30000);
+      }, 60000);
     }
 
     function stopDanceMusic() {
