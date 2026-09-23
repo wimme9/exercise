@@ -277,8 +277,11 @@
     }
 
     function stopDanceMusic() {
-      isPlaying = false;
-      bgMusic.oncanplaythrough = null; // ยกเลิก Event Listener
+      if (danceTimeout) {
+        clearTimeout(danceTimeout);
+        danceTimeout = null;
+      }
+
       bgMusic.pause();
       bgMusic.currentTime = 0;
 
